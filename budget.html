@@ -2103,8 +2103,17 @@
                INIT
             ══════════════════════════════════════════════════════════════ */
             initCookies();
-            loadState(); // loadState appelle renderAll() une fois fini
+            loadState(); // Premier chargement
+
+            // Polling : On recharge les données toutes les 5 secondes pour voir les modifs des autres
+            setInterval(() => {
+                // On ne recharge que si aucune modal n'est ouverte pour ne pas couper l'édition en cours
+                const isModalOpen = document.getElementById('modal-expense').classList.contains('open') || 
+                                   document.getElementById('settings-panel').style.display === 'block';
+                if (!isModalOpen) {
+                    loadState();
+                }
+            }, 5000);
         </script>
 </body>
-
 </html>
