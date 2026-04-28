@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 const __dirname = path.resolve();
 const DATA_FILE = path.join(__dirname, "data.json");
- 
+
 // Utilisation de KV sur Vercel, sinon FileSystem en local
 const useKV = process.env.KV_REST_API_URL !== undefined;
 
@@ -55,12 +55,23 @@ app.post("/api/budget", async (req, res) => {
             await kv.set("budget_data", payload);
             return res.json({ status: "ok" });
         } catch (e) {
-            return res.status(500).json({ error: "KV Write Error" });
+            console.error("Erreur KV:", e);
+            return res.status(500).json({ error: "Erreur de base de données KV" });
         }
     }
 
+    // Si on est sur Vercel mais que KV n'est pas configuré
+    if (process.env.VERCEL) {
+        return res.status(500).json({ 
+            error: "Configuration manquante : Veuillez connecter une base de données KV sur votre tableau de bord Vercel pour permettre la sauvegarde." 
+        });
+    }
+
     fs.writeFile(DATA_FILE, JSON.stringify(payload, null, 2), "utf-8", (err) => {
-        if (err) return res.status(500).json({ error: "Error writing data file" });
+        if (err) {
+            console.error("Erreur FS:", err);
+            return res.status(500).json({ error: "Erreur d'écriture fichier" });
+        }
         res.json({ status: "ok" });
     });
 });
