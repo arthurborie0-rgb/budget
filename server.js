@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 3000;
 
 const __dirname = path.resolve();
 const DATA_FILE = path.join(__dirname, "data.json");
-
+ 
 // Utilisation de KV sur Vercel, sinon FileSystem en local
 const useKV = process.env.KV_REST_API_URL !== undefined;
 
