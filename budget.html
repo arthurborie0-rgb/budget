@@ -1620,10 +1620,13 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(state)
                     });
-                    if (!response.ok) throw new Error('Erreur de sauvegarde');
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Erreur de sauvegarde');
+                    }
                 } catch (err) {
                     console.error('Erreur lors de la sauvegarde:', err);
-                    toast('Erreur de synchronisation avec le serveur.', 'danger');
+                    toast(err.message || 'Erreur de synchronisation.', 'danger');
                 }
             }
             function uid() {
