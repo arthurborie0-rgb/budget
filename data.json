@@ -1,0 +1,20 @@
+{
+  "event": {
+    "name": "Bal de Fin d'Année",
+    "date": "",
+    "budget": 5000
+  },
+  "categories": [
+    { "id": "cat1", "name": "Musique & DJ", "color": "#d4a017" },
+    { "id": "cat2", "name": "Restauration", "color": "#4caf7d" },
+    { "id": "cat3", "name": "Décoration", "color": "#4a9fff" },
+    { "id": "cat4", "name": "Sécurité", "color": "#e05252" },
+    { "id": "cat5", "name": "Communication", "color": "#b86ef0" },
+    { "id": "cat6", "name": "Logistique", "color": "#e07740" }
+  ],
+  "expenses": [
+    { "id": "exp1", "name": "DJ Set + Sono", "catId": "cat1", "fournisseur": "SoundLab Events", "statut": "confirme", "montant": 1200 },
+    { "id": "exp2", "name": "Buffet dînatoire", "catId": "cat2", "fournisseur": "Traiteur Lumière", "statut": "paye", "montant": 1800 },
+    { "id": "exp3", "name": "Fleurs & déco", "catId": "cat3", "fournisseur": "Atelier Bloom", "statut": "planifie", "montant": 450 }
+  ]
+}

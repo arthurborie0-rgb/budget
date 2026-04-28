@@ -1,0 +1,2110 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDE Budget — Bal de Fin d'Année</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* ── TOKENS ───────────────────────────────────────────────────── */
+        :root {
+            --gold: #d4a017;
+            --gold-soft: #e8c55a;
+            --gold-dim: #8a6510;
+            --champagne: #f5e6c8;
+            --bg: #0e0d0b;
+            --bg2: #171510;
+            --bg3: #1f1d18;
+            --bg4: #2a2720;
+            --surface: #211f1a;
+            --surface2: #2d2a23;
+            --border: rgba(212, 160, 23, .18);
+            --border2: rgba(212, 160, 23, .08);
+            --text: #f0e9d8;
+            --text2: #a89878;
+            --text3: #6b5e48;
+            --danger: #e05252;
+            --danger-bg: rgba(224, 82, 82, .12);
+            --success: #4caf7d;
+            --success-bg: rgba(76, 175, 125, .12);
+            --warning: #e09a2e;
+            --warning-bg: rgba(224, 154, 46, .12);
+            --r-sm: 6px;
+            --r-md: 12px;
+            --r-lg: 18px;
+            --r-xl: 28px;
+            --sh-sm: 0 2px 8px rgba(0, 0, 0, .35);
+            --sh-md: 0 6px 24px rgba(0, 0, 0, .45);
+            --sh-lg: 0 16px 48px rgba(0, 0, 0, .6);
+            --sh-gold: 0 0 0 2px rgba(212, 160, 23, .45);
+            --ease: cubic-bezier(0.16, 1, 0.3, 1);
+            --font-display: 'Cormorant Garamond', Georgia, serif;
+            --font-body: 'DM Sans', system-ui, sans-serif;
+            --sp-1: 4px;
+            --sp-2: 8px;
+            --sp-3: 12px;
+            --sp-4: 16px;
+            --sp-5: 20px;
+            --sp-6: 24px;
+            --sp-7: 32px;
+            --sp-8: 40px;
+            --sp-9: 56px;
+        }
+
+        [data-theme="light"] {
+            --gold: #b8860b;
+            --gold-soft: #c9960f;
+            --gold-dim: #7a5a08;
+            --champagne: #5a3e00;
+            --bg: #faf8f3;
+            --bg2: #f3efe5;
+            --bg3: #ece6d6;
+            --bg4: #e2dac8;
+            --surface: #ffffff;
+            --surface2: #f5f0e6;
+            --border: rgba(184, 134, 11, .22);
+            --border2: rgba(184, 134, 11, .10);
+            --text: #2a1f0a;
+            --text2: #6b5230;
+            --text3: #a8925a;
+            --danger: #c0392b;
+            --danger-bg: rgba(192, 57, 43, .10);
+            --success: #2e7d52;
+            --success-bg: rgba(46, 125, 82, .10);
+            --warning: #a66800;
+            --warning-bg: rgba(166, 104, 0, .10);
+            --sh-sm: 0 2px 8px rgba(0, 0, 0, .10);
+            --sh-md: 0 6px 24px rgba(0, 0, 0, .12);
+            --sh-lg: 0 16px 48px rgba(0, 0, 0, .16);
+            --sh-gold: 0 0 0 2px rgba(184, 134, 11, .40);
+        }
+
+        /* ── RESET / BASE ─────────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: background .3s var(--ease), color .3s var(--ease);
+            overflow-x: hidden;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none
+        }
+
+        button {
+            cursor: pointer;
+            font-family: inherit;
+            border: none;
+            background: none
+        }
+
+        input,
+        select,
+        textarea {
+            font-family: inherit
+        }
+
+        img {
+            display: block;
+            max-width: 100%
+        }
+
+        /* ── SCROLLBAR ────────────────────────────────────────────────── */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg2)
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px
+        }
+
+        /* ── LAYOUT ───────────────────────────────────────────────────── */
+        .app {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh
+        }
+
+        /* ── TOPBAR ───────────────────────────────────────────────────── */
+        .topbar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: var(--sp-4);
+            padding: 0 var(--sp-6);
+            height: 64px;
+            background: rgba(14, 13, 11, .88);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border2);
+            transition: background .3s var(--ease), border-color .3s var(--ease);
+        }
+
+        [data-theme="light"] .topbar {
+            background: rgba(250, 248, 243, .9)
+        }
+
+        .topbar-logo {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            flex-shrink: 0;
+        }
+
+        .topbar-logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-soft));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: var(--sh-gold);
+        }
+
+        .topbar-logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.1;
+        }
+
+        .topbar-logo-title {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: .01em;
+        }
+
+        .topbar-logo-sub {
+            font-size: .7rem;
+            color: var(--text3);
+            font-weight: 300;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .topbar-spacer {
+            flex: 1
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-2)
+        }
+
+        .topbar-event {
+            font-family: var(--font-display);
+            font-style: italic;
+            font-size: 1rem;
+            color: var(--text2);
+            flex: 1;
+            text-align: center;
+        }
+
+        /* ── BTN BASE ─────────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--sp-2);
+            padding: 0 var(--sp-4);
+            height: 38px;
+            border-radius: var(--r-md);
+            font-size: .825rem;
+            font-weight: 500;
+            transition: all .2s var(--ease);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--gold), var(--gold-soft));
+            color: #1a1200;
+            font-weight: 600;
+            box-shadow: 0 2px 12px rgba(212, 160, 23, .30);
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.08);
+            box-shadow: 0 4px 20px rgba(212, 160, 23, .45)
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text2);
+            border: 1px solid var(--border);
+        }
+
+        .btn-ghost:hover {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212, 160, 23, .06)
+        }
+
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: var(--r-md);
+            color: var(--text2);
+            border: 1px solid var(--border2);
+            font-size: 1rem;
+        }
+
+        .btn-icon:hover {
+            color: var(--gold);
+            border-color: var(--gold);
+            background: rgba(212, 160, 23, .06)
+        }
+
+        .btn-danger {
+            background: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid rgba(224, 82, 82, .2);
+        }
+
+        .btn-danger:hover {
+            background: rgba(224, 82, 82, .2)
+        }
+
+        .btn-sm {
+            height: 30px;
+            padding: 0 var(--sp-3);
+            font-size: .75rem
+        }
+
+        /* ── MAIN CONTENT ─────────────────────────────────────────────── */
+        .main {
+            max-width: 1280px;
+            width: 100%;
+            margin: 0 auto;
+            padding: var(--sp-7) var(--sp-6);
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-7);
+        }
+
+        /* ── SECTION HEADER ───────────────────────────────────────────── */
+        .section-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: var(--sp-4);
+            margin-bottom: var(--sp-5);
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: 1.6rem;
+            font-weight: 400;
+            line-height: 1.15;
+            letter-spacing: -.01em;
+        }
+
+        .section-title span {
+            color: var(--gold)
+        }
+
+        /* ── KPI GRID ─────────────────────────────────────────────────── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: var(--sp-4);
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: var(--r-lg);
+            padding: var(--sp-5);
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-3);
+            transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-soft));
+            opacity: 0;
+            transition: opacity .2s var(--ease);
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--sh-md);
+            border-color: var(--border)
+        }
+
+        .kpi-card:hover::before {
+            opacity: 1
+        }
+
+        .kpi-label {
+            font-size: .72rem;
+            font-weight: 500;
+            color: var(--text3);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            display: flex;
+            align-items: center;
+            gap: var(--sp-2);
+        }
+
+        .kpi-label .dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%
+        }
+
+        .kpi-value {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 600;
+            line-height: 1;
+            color: var(--text);
+            letter-spacing: -.02em;
+        }
+
+        .kpi-value.negative {
+            color: var(--danger)
+        }
+
+        .kpi-value.positive {
+            color: var(--success)
+        }
+
+        .kpi-sub {
+            font-size: .75rem;
+            color: var(--text3)
+        }
+
+        .kpi-progress {
+            height: 4px;
+            background: var(--bg3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: auto;
+        }
+
+        .kpi-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gold), var(--gold-soft));
+            border-radius: 2px;
+            transition: width .6s var(--ease);
+        }
+
+        .kpi-progress-bar.danger {
+            background: linear-gradient(90deg, var(--warning), var(--danger))
+        }
+
+        /* ── PANELS GRID ──────────────────────────────────────────────── */
+        .panels-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: var(--sp-6);
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: var(--r-lg);
+            overflow: hidden;
+        }
+
+        .panel-head {
+            padding: var(--sp-5) var(--sp-6);
+            border-bottom: 1px solid var(--border2);
+            display: flex;
+            align-items: center;
+            gap: var(--sp-4);
+        }
+
+        .panel-title {
+            font-family: var(--font-display);
+            font-size: 1.15rem;
+            font-weight: 400;
+            flex: 1;
+        }
+
+        .panel-body {
+            padding: var(--sp-5) var(--sp-6)
+        }
+
+        /* ── TABLE ────────────────────────────────────────────────────── */
+        .table-wrap {
+            overflow-x: auto
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .825rem
+        }
+
+        thead th {
+            padding: var(--sp-3) var(--sp-4);
+            text-align: left;
+            font-size: .68rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: var(--text3);
+            border-bottom: 1px solid var(--border2);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: var(--sp-3) var(--sp-4);
+            border-bottom: 1px solid var(--border2);
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none
+        }
+
+        tbody tr {
+            transition: background .15s
+        }
+
+        tbody tr:hover {
+            background: var(--bg2)
+        }
+
+        .td-name {
+            font-weight: 500;
+            color: var(--text)
+        }
+
+        .td-amount {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--gold);
+            white-space: nowrap;
+        }
+
+        .td-actions {
+            display: flex;
+            gap: var(--sp-2);
+            justify-content: flex-end
+        }
+
+        /* ── BADGE ────────────────────────────────────────────────────── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: .68rem;
+            font-weight: 600;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+
+        .badge-planifie {
+            background: var(--warning-bg);
+            color: var(--warning)
+        }
+
+        .badge-confirme {
+            background: rgba(33, 130, 255, .12);
+            color: #4a9fff
+        }
+
+        .badge-paye {
+            background: var(--success-bg);
+            color: var(--success)
+        }
+
+        .badge-cat {
+            padding: 2px 9px;
+            font-size: .68rem;
+            font-weight: 500;
+            border-radius: 999px;
+        }
+
+        /* ── CHART PANEL ──────────────────────────────────────────────── */
+        .chart-container {
+            position: relative;
+            max-width: 240px;
+            margin: var(--sp-4) auto;
+        }
+
+        .chart-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .chart-center-val {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .chart-center-lbl {
+            font-size: .68rem;
+            color: var(--text3);
+            margin-top: 3px;
+        }
+
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-3);
+            padding: 0 var(--sp-4) var(--sp-4);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            font-size: .78rem;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-name {
+            flex: 1;
+            color: var(--text2)
+        }
+
+        .legend-pct {
+            font-weight: 600;
+            color: var(--text);
+            font-family: var(--font-display);
+        }
+
+        .legend-amt {
+            color: var(--text3);
+            font-size: .72rem
+        }
+
+        /* ── CATEGORIES PANEL ─────────────────────────────────────────── */
+        .cat-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-2);
+            padding: var(--sp-4) var(--sp-5);
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .cat-item {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            padding: var(--sp-3);
+            border-radius: var(--r-md);
+            border: 1px solid var(--border2);
+            background: var(--bg2);
+            transition: border-color .15s;
+        }
+
+        .cat-item:hover {
+            border-color: var(--border)
+        }
+
+        .cat-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0
+        }
+
+        .cat-name {
+            flex: 1;
+            font-size: .825rem;
+            font-weight: 500
+        }
+
+        .cat-count {
+            font-size: .72rem;
+            color: var(--text3)
+        }
+
+        .cat-del {
+            width: 26px;
+            height: 26px;
+            border-radius: var(--r-sm);
+            color: var(--text3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .85rem;
+            transition: all .15s;
+        }
+
+        .cat-del:hover {
+            color: var(--danger);
+            background: var(--danger-bg)
+        }
+
+        .cat-add-form {
+            display: flex;
+            gap: var(--sp-2);
+            padding: var(--sp-3) var(--sp-5) var(--sp-5);
+            flex-wrap: wrap;
+        }
+
+        .cat-add-form input {
+            flex: 1;
+            min-width: 0
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            padding: 0 var(--sp-5) var(--sp-4);
+        }
+
+        .color-swatch {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform .15s, box-shadow .15s;
+            border: 2px solid transparent;
+        }
+
+        .color-swatch:hover {
+            transform: scale(1.2)
+        }
+
+        .color-swatch.selected {
+            border-color: var(--text);
+            box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text);
+        }
+
+        /* ── SETTINGS PANEL ───────────────────────────────────────────── */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--sp-4);
+        }
+
+        /* ── FORM CONTROLS ────────────────────────────────────────────── */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-2)
+        }
+
+        .form-label {
+            font-size: .72rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--text3);
+        }
+
+        .form-input {
+            height: 42px;
+            background: var(--bg3);
+            border: 1px solid var(--border);
+            border-radius: var(--r-md);
+            padding: 0 var(--sp-4);
+            color: var(--text);
+            font-size: .875rem;
+            transition: border-color .15s, box-shadow .15s;
+            width: 100%;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(212, 160, 23, .15);
+        }
+
+        .form-input::placeholder {
+            color: var(--text3)
+        }
+
+        select.form-input {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a89878' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 36px
+        }
+
+        /* ── MODAL ────────────────────────────────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, .65);
+            backdrop-filter: blur(6px);
+            padding: var(--sp-4);
+        }
+
+        .modal-overlay.open {
+            display: flex
+        }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--r-xl);
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--sh-lg);
+            animation: modal-in .3s var(--ease);
+        }
+
+        @keyframes modal-in {
+            from {
+                opacity: 0;
+                transform: translateY(24px) scale(.97)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        .modal-head {
+            padding: var(--sp-6);
+            border-bottom: 1px solid var(--border2);
+            display: flex;
+            align-items: center;
+            gap: var(--sp-4);
+        }
+
+        .modal-title {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 400;
+            flex: 1;
+        }
+
+        .modal-body {
+            padding: var(--sp-6);
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-5)
+        }
+
+        .modal-foot {
+            padding: var(--sp-4) var(--sp-6);
+            border-top: 1px solid var(--border2);
+            display: flex;
+            justify-content: flex-end;
+            gap: var(--sp-3);
+        }
+
+        .modal-error {
+            font-size: .78rem;
+            color: var(--danger);
+            display: none;
+        }
+
+        .modal-error.show {
+            display: block
+        }
+
+        /* ── TOAST ────────────────────────────────────────────────────── */
+        #toast-container {
+            position: fixed;
+            bottom: var(--sp-6);
+            right: var(--sp-6);
+            z-index: 500;
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-3);
+            pointer-events: none;
+        }
+
+        .toast {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--gold);
+            border-radius: var(--r-md);
+            padding: var(--sp-3) var(--sp-5);
+            display: flex;
+            align-items: center;
+            gap: var(--sp-3);
+            box-shadow: var(--sh-md);
+            animation: toast-in .35s var(--ease) both;
+            max-width: 320px;
+            font-size: .825rem;
+        }
+
+        .toast.success {
+            border-left-color: var(--success)
+        }
+
+        .toast.danger {
+            border-left-color: var(--danger)
+        }
+
+        .toast-icon {
+            font-size: 1rem
+        }
+
+        .toast-out {
+            animation: toast-out .3s var(--ease) both !important
+        }
+
+        @keyframes toast-in {
+            from {
+                opacity: 0;
+                transform: translateX(24px)
+            }
+
+            to {
+                opacity: 1;
+                transform: none
+            }
+        }
+
+        @keyframes toast-out {
+            from {
+                opacity: 1;
+                transform: none
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(24px)
+            }
+        }
+
+        /* ── FAB ──────────────────────────────────────────────────────── */
+        .fab {
+            display: none;
+            position: fixed;
+            bottom: calc(var(--sp-7) + 56px);
+            right: var(--sp-5);
+            z-index: 150;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold), var(--gold-soft));
+            color: #1a1200;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 20px rgba(212, 160, 23, .5);
+            justify-content: center;
+            align-items: center;
+            transition: transform .2s var(--ease), box-shadow .2s var(--ease);
+        }
+
+        .fab:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 28px rgba(212, 160, 23, .65)
+        }
+
+        .fab:active {
+            transform: scale(.95)
+        }
+
+        /* ── COOKIE BANNER ────────────────────────────────────────────── */
+        #cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 300;
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            padding: var(--sp-5) var(--sp-7);
+            display: none;
+            gap: var(--sp-5);
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 -8px 32px rgba(0, 0, 0, .3);
+            animation: slide-up .4s var(--ease);
+        }
+
+        #cookie-banner.show {
+            display: flex
+        }
+
+        @keyframes slide-up {
+            from {
+                transform: translateY(100%)
+            }
+
+            to {
+                transform: none
+            }
+        }
+
+        .cookie-text {
+            flex: 1;
+            min-width: 220px;
+            font-size: .825rem;
+            color: var(--text2)
+        }
+
+        .cookie-text strong {
+            color: var(--text)
+        }
+
+        .cookie-toggles {
+            display: flex;
+            gap: var(--sp-5);
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .cookie-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--sp-2);
+            font-size: .78rem;
+            color: var(--text2);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 38px;
+            height: 21px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute
+        }
+
+        .toggle-track {
+            position: absolute;
+            inset: 0;
+            background: var(--bg4);
+            border-radius: 999px;
+            transition: .2s var(--ease);
+            cursor: pointer;
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #fff;
+            transition: .2s var(--ease);
+        }
+
+        input:checked+.toggle-track {
+            background: var(--gold)
+        }
+
+        input:checked+.toggle-track::after {
+            transform: translateX(17px)
+        }
+
+        input:disabled+.toggle-track {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .cookie-btns {
+            display: flex;
+            gap: var(--sp-3);
+            flex-shrink: 0
+        }
+
+        /* ── MOBILE CARDS ─────────────────────────────────────────────── */
+        .mobile-cards {
+            display: none;
+            flex-direction: column;
+            gap: var(--sp-3)
+        }
+
+        .mobile-card {
+            background: var(--bg2);
+            border: 1px solid var(--border2);
+            border-radius: var(--r-lg);
+            padding: var(--sp-4);
+            display: flex;
+            flex-direction: column;
+            gap: var(--sp-3);
+        }
+
+        .mobile-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: var(--sp-3)
+        }
+
+        .mobile-card-name {
+            font-weight: 500;
+            line-height: 1.3
+        }
+
+        .mobile-card-meta {
+            display: flex;
+            gap: var(--sp-2);
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        .mobile-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .mobile-card-amount {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--gold);
+        }
+
+        /* ── EMPTY STATE ──────────────────────────────────────────────── */
+        .empty-state {
+            text-align: center;
+            padding: var(--sp-9) var(--sp-6);
+            color: var(--text3);
+        }
+
+        .empty-icon {
+            font-size: 2.5rem;
+            margin-bottom: var(--sp-4)
+        }
+
+        .empty-text {
+            font-size: .9rem
+        }
+
+        /* ── THEME TOGGLE ─────────────────────────────────────────────── */
+        .theme-btn .icon-sun {
+            display: none
+        }
+
+        .theme-btn .icon-moon {
+            display: inline
+        }
+
+        [data-theme="light"] .theme-btn .icon-sun {
+            display: inline
+        }
+
+        [data-theme="light"] .theme-btn .icon-moon {
+            display: none
+        }
+
+        /* ── DIVIDER ──────────────────────────────────────────────────── */
+        .divider {
+            height: 1px;
+            background: var(--border2);
+            margin: var(--sp-2) 0
+        }
+
+        /* ── RESPONSIVE ───────────────────────────────────────────────── */
+        @media(max-width:900px) {
+            .panels-grid {
+                grid-template-columns: 1fr
+            }
+
+            .settings-grid {
+                grid-template-columns: 1fr
+            }
+        }
+
+        @media(max-width:640px) {
+            .topbar {
+                padding: 0 var(--sp-4)
+            }
+
+            .topbar-logo-sub,
+            .topbar-event {
+                display: none
+            }
+
+            .topbar-actions .btn-ghost {
+                display: none
+            }
+
+            .main {
+                padding: var(--sp-5) var(--sp-4)
+            }
+
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: var(--sp-3)
+            }
+
+            .kpi-value {
+                font-size: 1.5rem
+            }
+
+            .kpi-card {
+                padding: var(--sp-4)
+            }
+
+            #expense-table-wrap {
+                display: none
+            }
+
+            .mobile-cards {
+                display: flex
+            }
+
+            .fab {
+                display: flex
+            }
+
+            #cookie-banner {
+                padding: var(--sp-4)
+            }
+
+            .cookie-text {
+                font-size: .78rem
+            }
+
+            .modal-overlay {
+                align-items: flex-end;
+                padding: 0
+            }
+
+            .modal {
+                border-radius: var(--r-xl) var(--r-xl) 0 0;
+                max-width: 100%;
+                max-height: 92vh;
+                animation: sheet-in .35s var(--ease);
+            }
+
+            @keyframes sheet-in {
+                from {
+                    opacity: 0;
+                    transform: translateY(100%)
+                }
+
+                to {
+                    opacity: 1;
+                    transform: none
+                }
+            }
+
+            #toast-container {
+                right: var(--sp-3);
+                bottom: var(--sp-3);
+                left: var(--sp-3)
+            }
+
+            .toast {
+                max-width: 100%
+            }
+        }
+
+        @media(min-width:641px) {
+            .topbar-actions .btn-add-desktop {
+                display: flex
+            }
+        }
+
+        /* ── MISC ─────────────────────────────────────────────────────── */
+        .gold {
+            color: var(--gold)
+        }
+
+        .nowrap {
+            white-space: nowrap
+        }
+
+        .text-center {
+            text-align: center
+        }
+
+        .fw500 {
+            font-weight: 500
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app" id="app">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+            <div class="topbar-logo">
+                <div class="topbar-logo-icon">🎓</div>
+                <div class="topbar-logo-text">
+                    <span class="topbar-logo-title">BDE Budget</span>
+                    <span class="topbar-logo-sub">Gestion financière</span>
+                </div>
+            </div>
+            <div class="topbar-event" id="topbar-event">Bal de Fin d'Année</div>
+            <div class="topbar-spacer"></div>
+            <div class="topbar-actions">
+                <button class="btn btn-ghost btn-sm" id="btn-import" title="Importer JSON">📥 Import</button>
+                <button class="btn btn-ghost btn-sm" id="btn-export" title="Exporter JSON">📤 Export</button>
+                <button class="btn btn-ghost btn-icon theme-btn" id="btn-theme" title="Thème">
+                    <span class="icon-sun">☀️</span>
+                    <span class="icon-moon">🌙</span>
+                </button>
+                <button class="btn btn-primary btn-sm btn-add-desktop" id="btn-add-desktop" style="display:flex">➕
+                    Ajouter</button>
+            </div>
+        </header>
+
+        <!-- MAIN -->
+        <main class="main">
+
+            <!-- KPI -->
+            <section>
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Tableau de bord <span id="event-date-display"></span></h2>
+                    </div>
+                    <button class="btn btn-ghost btn-sm" id="btn-settings">⚙️ Paramètres</button>
+                </div>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label"><span class="dot" style="background:var(--gold)"></span>Budget total
+                        </div>
+                        <div class="kpi-value" id="kpi-budget">0 €</div>
+                        <div class="kpi-sub" id="kpi-budget-sub">Enveloppe allouée</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label"><span class="dot" style="background:#e07740"></span>Dépenses totales
+                        </div>
+                        <div class="kpi-value" id="kpi-depenses">0 €</div>
+                        <div class="kpi-progress">
+                            <div class="kpi-progress-bar" id="kpi-progress-bar" style="width:0%"></div>
+                        </div>
+                        <div class="kpi-sub" id="kpi-pct">0 % du budget</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label"><span class="dot" style="background:var(--success)"></span>Solde restant
+                        </div>
+                        <div class="kpi-value" id="kpi-solde">0 €</div>
+                        <div class="kpi-sub" id="kpi-solde-sub">Disponible</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label"><span class="dot" style="background:#4a9fff"></span>Confirmé / Payé</div>
+                        <div class="kpi-value" id="kpi-paye">0 €</div>
+                        <div class="kpi-sub" id="kpi-paye-sub">Engagements fermes</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TABLE + CHART -->
+            <div class="panels-grid">
+                <!-- Dépenses -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <span class="panel-title">📋 Dépenses</span>
+                        <select class="form-input btn-sm" id="filter-cat"
+                            style="width:auto;height:32px;font-size:.78rem;flex-shrink:0">
+                            <option value="">Toutes catégories</option>
+                        </select>
+                        <select class="form-input btn-sm" id="filter-status"
+                            style="width:auto;height:32px;font-size:.78rem;flex-shrink:0">
+                            <option value="">Tous statuts</option>
+                            <option value="planifie">Planifié</option>
+                            <option value="confirme">Confirmé</option>
+                            <option value="paye">Payé</option>
+                        </select>
+                    </div>
+                    <!-- Desktop table -->
+                    <div class="table-wrap" id="expense-table-wrap">
+                        <table id="expense-table">
+                            <thead>
+                                <tr>
+                                    <th>Désignation</th>
+                                    <th>Catégorie</th>
+                                    <th>Fournisseur</th>
+                                    <th>Statut</th>
+                                    <th style="text-align:right">Montant</th>
+                                    <th style="text-align:right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expense-tbody"></tbody>
+                        </table>
+                    </div>
+                    <!-- Mobile cards -->
+                    <div class="mobile-cards" id="expense-mobile" style="padding:var(--sp-4)"></div>
+                </div>
+
+                <!-- Right column -->
+                <div style="display:flex;flex-direction:column;gap:var(--sp-5)">
+
+                    <!-- Chart -->
+                    <div class="panel">
+                        <div class="panel-head"><span class="panel-title">🍩 Répartition</span></div>
+                        <div class="chart-container">
+                            <canvas id="donut-chart" width="240" height="240"></canvas>
+                            <div class="chart-center">
+                                <div class="chart-center-val" id="chart-total">0 €</div>
+                                <div class="chart-center-lbl">Total</div>
+                            </div>
+                        </div>
+                        <div class="chart-legend" id="chart-legend"></div>
+                    </div>
+
+                    <!-- Categories -->
+                    <div class="panel">
+                        <div class="panel-head"><span class="panel-title">🏷️ Catégories</span></div>
+                        <div class="cat-list" id="cat-list"></div>
+                        <div class="divider" style="margin:0 var(--sp-5)"></div>
+                        <div class="color-palette" id="color-palette"></div>
+                        <div class="cat-add-form">
+                            <input class="form-input" id="cat-name-input" placeholder="Nouvelle catégorie…"
+                                maxlength="30">
+                            <button class="btn btn-primary btn-sm" id="btn-add-cat">+ Ajouter</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="panel" id="settings-panel" style="display:none">
+                <div class="panel-head">
+                    <span class="panel-title">⚙️ Paramètres</span>
+                    <button class="btn btn-ghost btn-icon btn-sm" id="btn-close-settings">✕</button>
+                </div>
+                <div class="panel-body">
+                    <div class="settings-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="set-event">Nom de l'événement</label>
+                            <input class="form-input" id="set-event" type="text" placeholder="Bal de Fin d'Année">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="set-date">Date de l'événement</label>
+                            <input class="form-input" id="set-date" type="date">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="set-budget">Budget total (€)</label>
+                            <input class="form-input" id="set-budget" type="number" min="0" step="10"
+                                placeholder="5000">
+                        </div>
+                        <div class="form-group" style="align-self:end">
+                            <button class="btn btn-primary" id="btn-save-settings" style="width:100%">💾
+                                Enregistrer</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- FAB -->
+        <button class="fab" id="fab-add" title="Ajouter une dépense">+</button>
+
+        <!-- MODAL DÉPENSE -->
+        <div class="modal-overlay" id="modal-expense">
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+                <div class="modal-head">
+                    <span class="modal-title" id="modal-title">Nouvelle dépense</span>
+                    <button class="btn btn-icon btn-sm" id="modal-close">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label" for="f-name">Désignation *</label>
+                        <input class="form-input" id="f-name" type="text" placeholder="Ex : DJ, Buffet, Décoration…"
+                            maxlength="80">
+                        <span class="modal-error" id="err-name">Ce champ est requis.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-cat">Catégorie *</label>
+                        <select class="form-input" id="f-cat"></select>
+                        <span class="modal-error" id="err-cat">Sélectionnez une catégorie.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-fournisseur">Fournisseur</label>
+                        <input class="form-input" id="f-fournisseur" type="text" placeholder="Nom du prestataire"
+                            maxlength="60">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-statut">Statut *</label>
+                        <select class="form-input" id="f-statut">
+                            <option value="planifie">Planifié</option>
+                            <option value="confirme">Confirmé</option>
+                            <option value="paye">Payé</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-montant">Montant (€) *</label>
+                        <input class="form-input" id="f-montant" type="number" min="0" step="0.01" placeholder="0.00">
+                        <span class="modal-error" id="err-montant">Entrez un montant valide (> 0).</span>
+                    </div>
+                </div>
+                <div class="modal-foot">
+                    <button class="btn btn-ghost" id="modal-cancel">Annuler</button>
+                    <button class="btn btn-primary" id="modal-save">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- COOKIE BANNER -->
+        <div id="cookie-banner">
+            <div class="cookie-text">
+                <strong>🍪 Cookies & Données</strong><br>
+                Cette application sauvegarde vos données en localStorage (essentiel) et peut mémoriser votre thème
+                préféré (préférences). Aucune donnée n'est envoyée à des serveurs tiers.
+            </div>
+            <div class="cookie-toggles">
+                <label class="cookie-toggle">
+                    <span>Essentiel</span>
+                    <div class="toggle-switch"><input type="checkbox" checked disabled><span
+                            class="toggle-track"></span></div>
+                </label>
+                <label class="cookie-toggle">
+                    <span>Préférences</span>
+                    <div class="toggle-switch"><input type="checkbox" id="pref-toggle" checked><span
+                            class="toggle-track"></span></div>
+                </label>
+            </div>
+            <div class="cookie-btns">
+                <button class="btn btn-ghost btn-sm" id="cookie-decline">Refuser opt.</button>
+                <button class="btn btn-primary btn-sm" id="cookie-accept">Accepter</button>
+            </div>
+        </div>
+
+        <!-- TOAST CONTAINER -->
+        <div id="toast-container"></div>
+
+        <!-- IMPORT INPUT (hidden) -->
+        <input type="file" id="import-file" accept=".json" style="display:none">
+
+        <script>
+            /* ══════════════════════════════════════════════════════════════
+               COOKIES UTILITIES
+            ══════════════════════════════════════════════════════════════ */
+            const Cookies = {
+                set(name, value, days = 365) {
+                    const d = new Date(); d.setTime(d.getTime() + days * 86400000);
+                    document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+                },
+                get(name) {
+                    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+                    return m ? decodeURIComponent(m.pop()) : null;
+                },
+                delete(name) {
+                    this.set(name, '', -1);
+                }
+            };
+
+            /* ══════════════════════════════════════════════════════════════
+               PALETTE COULEURS
+            ══════════════════════════════════════════════════════════════ */
+            const COLOR_PALETTE = [
+                '#d4a017', '#e05252', '#4caf7d', '#4a9fff', '#b86ef0',
+                '#e07740', '#f0c040', '#e055a0', '#40c0c8', '#8888ff'
+            ];
+
+            /* ══════════════════════════════════════════════════════════════
+               STATE PAR DÉFAUT
+            ══════════════════════════════════════════════════════════════ */
+            const DEFAULT_STATE = {
+                event: { name: 'Bal de Fin d\'Année', date: '', budget: 5000 },
+                categories: [
+                    { id: 'cat1', name: 'Musique & DJ', color: '#d4a017' },
+                    { id: 'cat2', name: 'Restauration', color: '#4caf7d' },
+                    { id: 'cat3', name: 'Décoration', color: '#4a9fff' },
+                    { id: 'cat4', name: 'Sécurité', color: '#e05252' },
+                    { id: 'cat5', name: 'Communication', color: '#b86ef0' },
+                    { id: 'cat6', name: 'Logistique', color: '#e07740' }
+                ],
+                expenses: [
+                    { id: 'exp1', name: 'DJ Set + Sono', catId: 'cat1', fournisseur: 'SoundLab Events', statut: 'confirme', montant: 1200 },
+                    { id: 'exp2', name: 'Buffet dînatoire', catId: 'cat2', fournisseur: 'Traiteur Lumière', statut: 'paye', montant: 1800 },
+                    { id: 'exp3', name: 'Fleurs & déco', catId: 'cat3', fournisseur: 'Atelier Bloom', statut: 'planifie', montant: 450 }
+                ]
+            };
+
+            /* ══════════════════════════════════════════════════════════════
+               STATE GLOBAL
+            ══════════════════════════════════════════════════════════════ */
+            let state = {};
+            let editingId = null;
+            let selectedColor = COLOR_PALETTE[0];
+            let donutChart = null;
+
+            async function loadState() {
+                try {
+                    const response = await fetch('/api/budget');
+                    if (!response.ok) throw new Error('Erreur réseau');
+                    const data = await response.json();
+                    
+                    // Si le serveur renvoie un objet vide ou incomplet, on utilise le state par défaut
+                    if (!data.categories || data.categories.length === 0) {
+                        state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                        // On sauvegarde immédiatement l'état par défaut sur le serveur s'il est vide
+                        await saveState();
+                    } else {
+                        state = data;
+                    }
+                } catch (err) {
+                    console.error('Erreur lors du chargement:', err);
+                    toast('Erreur de chargement. Utilisation des données locales.', 'danger');
+                    // Fallback sur localStorage si possible, sinon par défaut
+                    try {
+                        const raw = localStorage.getItem('bde_budget_v1');
+                        state = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_STATE));
+                    } catch {
+                        state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                    }
+                }
+                renderAll();
+            }
+
+            async function saveState() {
+                // On garde une copie locale en cas de coupure réseau
+                localStorage.setItem('bde_budget_v1', JSON.stringify(state));
+
+                try {
+                    const response = await fetch('/api/budget', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(state)
+                    });
+                    if (!response.ok) throw new Error('Erreur de sauvegarde');
+                } catch (err) {
+                    console.error('Erreur lors de la sauvegarde:', err);
+                    toast('Erreur de synchronisation avec le serveur.', 'danger');
+                }
+            }
+            function uid() {
+                return 'id_' + Math.random().toString(36).slice(2, 10);
+            }
+
+            /* ══════════════════════════════════════════════════════════════
+               TOAST
+            ══════════════════════════════════════════════════════════════ */
+            function toast(msg, type = 'default') {
+                const icons = { default: '✨', success: '✅', danger: '🗑️' };
+                const el = document.createElement('div');
+                el.className = `toast ${type}`;
+                el.innerHTML = `<span class="toast-icon">${icons[type] || '✨'}</span><span>${msg}</span>`;
+                document.getElementById('toast-container').appendChild(el);
+                setTimeout(() => {
+                    el.classList.add('toast-out');
+                    el.addEventListener('animationend', () => el.remove(), { once: true });
+                }, 2800);
+            }
+
+            /* ══════════════════════════════════════════════════════════════
+               FORMATAGE
+            ══════════════════════════════════════════════════════════════ */
+            function fmt(n) {
+                return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2 }).format(n);
+            }
+            function fmtDate(d) {
+                if (!d) return '';
+                try {
+                    return new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }).format(new Date(d));
+                } catch { return d; }
+            }
+            function catById(id) { return state.categories.find(c => c.id === id) || { name: '—', color: '#888' } }
+            function catBadge(id) {
+                const c = catById(id);
+                return `<span class="badge-cat" style="background:${c.color}22;color:${c.color};border:1px solid ${c.color}44">${c.name}</span>`;
+            }
+            function statusBadge(s) {
+                const map = { planifie: 'badge-planifie', confirme: 'badge-confirme', paye: 'badge-paye' };
+                const lbl = { planifie: 'Planifié', confirme: 'Confirmé', paye: 'Payé' };
+                return `<span class="badge ${map[s] || ''}">${lbl[s] || s}</span>`;
+            }
+
+            /* ══════════════════════════════════════════════════════════════
+               KPI
+            ══════════════════════════════════════════════════════════════ */
+            function renderKPI() {
+                const budget = state.event.budget || 0;
+                const total = state.expenses.reduce((s, e) => s + e.montant, 0);
+                const solde = budget - total;
+                const paye = state.expenses.filter(e => e.statut === 'confirme' || e.statut === 'paye').reduce((s, e) => s + e.montant, 0);
+                const pct = budget ? Math.min((total / budget) * 100, 100) : 0;
+
+                document.getElementById('kpi-budget').textContent = fmt(budget);
+                document.getElementById('kpi-depenses').textContent = fmt(total);
+                const soldeEl = document.getElementById('kpi-solde');
+                soldeEl.textContent = fmt(solde);
+                soldeEl.className = 'kpi-value ' + (solde < 0 ? 'negative' : 'positive');
+                document.getElementById('kpi-paye').textContent = fmt(paye);
+                document.getElementById('kpi-paye-sub').textContent = `${state.expenses.filter(e => e.statut === 'paye').length} dépense(s) payée(s)`;
+
+                const bar = document.getElementById('kpi-progress-bar');
+                bar.style.width = pct + '%';
+                bar.className = 'kpi-progress-bar' + (pct > 85 ? ' danger' : '');
+                document.getElementById('kpi-pct').textContent = pct.toFixed(1) + ' % du budget';
+
+                // topbar
+                document.getElementById('topbar-event').textContent = state.event.name || 'Bal de Fin d\'Année';
+                const dateDisp = document.getElementById('event-date-display');
+                dateDisp.textContent = state.event.date ? '— ' + fmtDate(state.event.date) : '';
+            }
+
+            /* ══════════════════════════════════════════════════════════════
+               TABLE DÉPENSES
+            ══════════════════════════════════════════════════════════════ */
+            function getFiltered() {
+                const fcat = document.getElementById('filter-cat').value;
+                const fstat = document.getElementById('filter-status').value;
+                return state.expenses.filter(e => {
+                    if (fcat && e.catId !== fcat) return false;
+                    if (fstat && e.statut !== fstat) return false;
+                    return true;
+                });
+            }
+
+            function renderTable() {
+                const data = getFiltered();
+                const tbody = document.getElementById('expense-tbody');
+                const mobileEl = document.getElementById('expense-mobile');
+
+                if (!data.length) {
+                    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Aucune dépense trouvée.<br>Cliquez sur <strong>+ Ajouter</strong> pour commencer.</div></div></td></tr>`;
+                    mobileEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Aucune dépense trouvée.</div></div>`;
+                    return;
+                }
+
+                // Desktop
+                tbody.innerHTML = data.map(e => `
+    <tr>
+      <td class="td-name">${escHtml(e.name)}</td>
+      <td>${catBadge(e.catId)}</td>
+      <td style="color:var(--text2)">${escHtml(e.fournisseur || '—')}</td>
+      <td>${statusBadge(e.statut)}</td>
+      <td class="td-amount" style="text-align:right">${fmt(e.montant)}</td>
+      <td class="td-actions">
+        <button class="btn btn-icon btn-sm" onclick="openEdit('${e.id}')" title="Modifier">✏️</button>
+        <button class="btn btn-icon btn-sm btn-danger" onclick="deleteExpense('${e.id}')" title="Supprimer">🗑️</button>
+      </td>
+    </tr>`).join('');
+
+                // Mobile
+                mobileEl.innerHTML = data.map(e => `
+    <div class="mobile-card">
+      <div class="mobile-card-top">
+        <div class="mobile-card-name">${escHtml(e.name)}</div>
+        ${statusBadge(e.statut)}
+      </div>
+      <div class="mobile-card-meta">
+        ${catBadge(e.catId)}
+        ${e.fournisseur ? `<span style="font-size:.75rem;color:var(--text3)">${escHtml(e.fournisseur)}</span>` : ''}
+      </div>
+      <div class="mobile-card-footer">
+        <span class="mobile-card-amount">${fmt(e.montant)}</span>
+        <div style="display:flex;gap:var(--sp-2)">
+          <button class="btn btn-icon btn-sm" onclick="openEdit('${e.id}')">✏️</button>
+          <button class="btn btn-icon btn-sm btn-danger" onclick="deleteExpense('${e.id}')">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+            }
+
+            function escHtml(s) {
+                if (!s) return '';
+                return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            /* ══════════════════════════════════════════════════════════════
+               CHART
+            ══════════════════════════════════════════════════════════════ */
+            function renderChart() {
+                const bycat = {};
+                state.expenses.forEach(e => {
+                    bycat[e.catId] = (bycat[e.catId] || 0) + e.montant;
+                });
+                const cats = state.categories.filter(c => bycat[c.id]);
+                const total = Object.values(bycat).reduce((a, b) => a + b, 0);
+
+                document.getElementById('chart-total').textContent = fmt(total);
+
+                const labels = cats.map(c => c.name);
+                const data = cats.map(c => bycat[c.id] || 0);
+                const colors = cats.map(c => c.color);
+
+                if (donutChart) {
+                    donutChart.data.labels = labels;
+                    donutChart.data.datasets[0].data = data;
+                    donutChart.data.datasets[0].backgroundColor = colors;
+                    donutChart.update();
+                } else {
+                    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                    donutChart = new Chart(document.getElementById('donut-chart'), {
+                        type: 'doughnut',
+                        data: {
+                            labels, datasets: [{
+                                data, backgroundColor: colors,
+                                borderWidth: 0, hoverOffset: 6
+                            }]
+                        },
+                        options: {
+                            cutout: '72%',
+                            plugins: {
+                                legend: { display: false }, tooltip: {
+                                    callbacks: {
+                                        label: (ctx) => ` ${ctx.label}: ${fmt(ctx.raw)} (${total ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`
+                                    },
+                                    bodyFont: { family: 'DM Sans' },
+                                    backgroundColor: 'rgba(20,18,14,.92)',
+                                    borderColor: 'rgba(212,160,23,.3)',
+                                    borderWidth: 1
+                                }
+                            },
+                            animation: { duration: 400, easing: 'easeOutQuart' }
+                        }
+                    });
+                }
+
+                // Legend
+                const leg = document.getElementById('chart-legend');
+                if (!cats.length) {
+                    leg.innerHTML = '<div class="empty-state" style="padding:var(--sp-4)"><span class="empty-text">Aucune dépense.</span></div>';
+                    return;
+                }
+                leg.innerHTML = cats.map(c => `
+    <div class="legend-item">
+      <div class="legend-dot" style="background:${c.color}"></div>
+      <span class="legend-name">${escHtml(c.name)}</span>
+      <span class="legend-pct">${total ? ((bycat[c.id] / total) * 100).toFixed(0) : 0}%</span>
+      <span class="legend-amt">${fmt(bycat[c.id])}</span>
+    </div>`).join('');
+            }
+
+            /* ══════════════════════════════════════════════════════════════
+               CATÉGORIES
+            ══════════════════════════════════════════════════════════════ */
+            function renderCategories() {
+                const list = document.getElementById('cat-list');
+                if (!state.categories.length) {
+                    list.innerHTML = '<div class="empty-state" style="padding:var(--sp-5)"><span class="empty-text">Aucune catégorie.</span></div>';
+                } else {
+                    list.innerHTML = state.categories.map(c => {
+                        const cnt = state.expenses.filter(e => e.catId === c.id).length;
+                        return `<div class="cat-item">
+        <div class="cat-swatch" style="background:${c.color}"></div>
+        <span class="cat-name">${escHtml(c.name)}</span>
+        <span class="cat-count">${cnt} dép.</span>
+        <button class="cat-del" onclick="deleteCat('${c.id}')" title="Supprimer">✕</button>
+      </div>`;
+                    }).join('');
+                }
+
+                // Filter select + modal select
+                const fcat = document.getElementById('filter-cat');
+                const fval = fcat.value;
+                fcat.innerHTML = '<option value="">Toutes catégories</option>' +
+                    state.categories.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+                if (fval) fcat.value = fval;
+
+                const fCatModal = document.getElementById('f-cat');
+                const mval = fCatModal.value;
+                fCatModal.innerHTML = '<option value="">— Choisir —</option>' +
+                    state.categories.map(c => `<option value="${c.id}">${escHtml(c.name)}</option>`).join('');
+                if (mval) fCatModal.value = mval;
+            }
+
+            function deleteCat(id) {
+                const used = state.expenses.some(e => e.catId === id);
+                if (used) { toast('Cette catégorie est utilisée par des dépenses.', 'danger'); return; }
+                state.categories = state.categories.filter(c => c.id !== id);
+                saveState(); renderAll();
+                toast('Catégorie supprimée.', 'danger');
+            }
+
+            function renderColorPalette() {
+                const pal = document.getElementById('color-palette');
+                pal.innerHTML = COLOR_PALETTE.map(c => `
+    <div class="color-swatch${selectedColor === c ? ' selected' : ''}" style="background:${c}"
+      onclick="selectColor('${c}')"></div>`).join('');
+            }
+            function selectColor(c) { selectedColor = c; renderColorPalette(); }
+
+            /* ══════════════════════════════════════════════════════════════
+               SETTINGS
+            ══════════════════════════════════════════════════════════════ */
+            function openSettings() {
+                document.getElementById('set-event').value = state.event.name || '';
+                document.getElementById('set-date').value = state.event.date || '';
+                document.getElementById('set-budget').value = state.event.budget || '';
+                document.getElementById('settings-panel').style.display = 'block';
+                document.getElementById('settings-panel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+            document.getElementById('btn-settings').addEventListener('click', openSettings);
+            document.getElementById('btn-close-settings').addEventListener('click', () => {
+                document.getElementById('settings-panel').style.display = 'none';
+            });
+            document.getElementById('btn-save-settings').addEventListener('click', () => {
+                const name = document.getElementById('set-event').value.trim();
+                const date = document.getElementById('set-date').value;
+                const budget = parseFloat(document.getElementById('set-budget').value) || 0;
+                if (!name) { toast('Le nom ne peut pas être vide.', 'danger'); return; }
+                state.event = { name, date, budget };
+                saveState(); renderAll();
+                toast('Paramètres enregistrés !', 'success');
+                document.getElementById('settings-panel').style.display = 'none';
+            });
+
+            /* ══════════════════════════════════════════════════════════════
+               MODAL
+            ══════════════════════════════════════════════════════════════ */
+            function openModal(id = null) {
+                editingId = id;
+                const modal = document.getElementById('modal-expense');
+                document.getElementById('modal-title').textContent = id ? 'Modifier la dépense' : 'Nouvelle dépense';
+                clearErrors();
+                if (id) {
+                    const e = state.expenses.find(x => x.id === id);
+                    if (e) {
+                        document.getElementById('f-name').value = e.name;
+                        document.getElementById('f-cat').value = e.catId;
+                        document.getElementById('f-fournisseur').value = e.fournisseur || '';
+                        document.getElementById('f-statut').value = e.statut;
+                        document.getElementById('f-montant').value = e.montant;
+                    }
+                } else {
+                    document.getElementById('f-name').value = '';
+                    document.getElementById('f-cat').value = '';
+                    document.getElementById('f-fournisseur').value = '';
+                    document.getElementById('f-statut').value = 'planifie';
+                    document.getElementById('f-montant').value = '';
+                }
+                modal.classList.add('open');
+                document.getElementById('f-name').focus();
+            }
+            function closeModal() {
+                document.getElementById('modal-expense').classList.remove('open');
+                editingId = null;
+            }
+            function clearErrors() {
+                ['err-name', 'err-cat', 'err-montant'].forEach(id => {
+                    document.getElementById(id).classList.remove('show');
+                });
+            }
+
+            document.getElementById('modal-close').addEventListener('click', closeModal);
+            document.getElementById('modal-cancel').addEventListener('click', closeModal);
+            document.getElementById('modal-expense').addEventListener('click', e => {
+                if (e.target === document.getElementById('modal-expense')) closeModal();
+            });
+
+            document.getElementById('modal-save').addEventListener('click', () => {
+                clearErrors();
+                const name = document.getElementById('f-name').value.trim();
+                const catId = document.getElementById('f-cat').value;
+                const fournisseur = document.getElementById('f-fournisseur').value.trim();
+                const statut = document.getElementById('f-statut').value;
+                const montant = parseFloat(document.getElementById('f-montant').value);
+
+                let ok = true;
+                if (!name) { document.getElementById('err-name').classList.add('show'); ok = false; }
+                if (!catId) { document.getElementById('err-cat').classList.add('show'); ok = false; }
+                if (!montant || montant <= 0) { document.getElementById('err-montant').classList.add('show'); ok = false; }
+                if (!ok) return;
+
+                if (editingId) {
+                    const i = state.expenses.findIndex(e => e.id === editingId);
+                    if (i >= 0) state.expenses[i] = { id: editingId, name, catId, fournisseur, statut, montant };
+                    toast('Dépense modifiée.', 'success');
+                } else {
+                    state.expenses.push({ id: uid(), name, catId, fournisseur, statut, montant });
+                    toast('Dépense ajoutée ! 🎉', 'success');
+                }
+                saveState(); renderAll(); closeModal();
+            });
+
+            function openEdit(id) { openModal(id); }
+            function deleteExpense(id) {
+                if (!confirm('Supprimer cette dépense ?')) return;
+                state.expenses = state.expenses.filter(e => e.id !== id);
+                saveState(); renderAll();
+                toast('Dépense supprimée.', 'danger');
+            }
+
+            /* ══════════════════════════════════════════════════════════════
+               ADD CATEGORY
+            ══════════════════════════════════════════════════════════════ */
+            document.getElementById('btn-add-cat').addEventListener('click', () => {
+                const name = document.getElementById('cat-name-input').value.trim();
+                if (!name) { toast('Entrez un nom de catégorie.', 'danger'); return; }
+                if (state.categories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+                    toast('Cette catégorie existe déjà.', 'danger'); return;
+                }
+                state.categories.push({ id: uid(), name, color: selectedColor });
+                document.getElementById('cat-name-input').value = '';
+                saveState(); renderAll();
+                toast('Catégorie créée !', 'success');
+            });
+            document.getElementById('cat-name-input').addEventListener('keydown', e => {
+                if (e.key === 'Enter') document.getElementById('btn-add-cat').click();
+            });
+
+            /* ══════════════════════════════════════════════════════════════
+               FILTERS
+            ══════════════════════════════════════════════════════════════ */
+            document.getElementById('filter-cat').addEventListener('change', renderTable);
+            document.getElementById('filter-status').addEventListener('change', renderTable);
+
+            /* ══════════════════════════════════════════════════════════════
+               BUTTONS
+            ══════════════════════════════════════════════════════════════ */
+            document.getElementById('btn-add-desktop').addEventListener('click', () => openModal());
+            document.getElementById('fab-add').addEventListener('click', () => openModal());
+
+            /* ══════════════════════════════════════════════════════════════
+               THEME
+            ══════════════════════════════════════════════════════════════ */
+            function applyTheme(t) {
+                document.documentElement.setAttribute('data-theme', t);
+                if (Cookies.get('bde_pref_consent') === '1') {
+                    Cookies.set('bde_theme', t);
+                }
+                if (donutChart) {
+                    donutChart.options.plugins.tooltip.backgroundColor =
+                        t === 'dark' ? 'rgba(20,18,14,.92)' : 'rgba(250,248,243,.95)';
+                    donutChart.update();
+                }
+            }
+            document.getElementById('btn-theme').addEventListener('click', () => {
+                const cur = document.documentElement.getAttribute('data-theme');
+                applyTheme(cur === 'dark' ? 'light' : 'dark');
+            });
+
+            /* ══════════════════════════════════════════════════════════════
+               EXPORT / IMPORT
+            ══════════════════════════════════════════════════════════════ */
+            document.getElementById('btn-export').addEventListener('click', () => {
+                const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `bde_budget_${Date.now()}.json`;
+                a.click(); URL.revokeObjectURL(a.href);
+                toast('Export JSON téléchargé !', 'success');
+            });
+            document.getElementById('btn-import').addEventListener('click', () => {
+                document.getElementById('import-file').click();
+            });
+            document.getElementById('import-file').addEventListener('change', e => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const r = new FileReader();
+                r.onload = ev => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (!data.event || !data.categories || !data.expenses) throw new Error('Format invalide');
+                        state = data;
+                        saveState(); renderAll();
+                        toast('Données importées avec succès !', 'success');
+                    } catch (err) {
+                        toast('Fichier JSON invalide.', 'danger');
+                    }
+                };
+                r.readAsText(file);
+                e.target.value = '';
+            });
+
+            /* ══════════════════════════════════════════════════════════════
+               COOKIE BANNER
+            ══════════════════════════════════════════════════════════════ */
+            function initCookies() {
+                const consent = Cookies.get('bde_cookie_consent');
+                if (!consent) {
+                    document.getElementById('cookie-banner').classList.add('show');
+                }
+                const savedTheme = Cookies.get('bde_theme');
+                if (savedTheme && (savedTheme === 'dark' || savedTheme === 'light')) {
+                    document.documentElement.setAttribute('data-theme', savedTheme);
+                }
+            }
+            document.getElementById('cookie-accept').addEventListener('click', () => {
+                const pref = document.getElementById('pref-toggle').checked;
+                Cookies.set('bde_cookie_consent', '1');
+                if (pref) Cookies.set('bde_pref_consent', '1');
+                else Cookies.delete('bde_pref_consent');
+                document.getElementById('cookie-banner').classList.remove('show');
+                toast('Préférences de cookies sauvegardées.', 'success');
+            });
+            document.getElementById('cookie-decline').addEventListener('click', () => {
+                Cookies.set('bde_cookie_consent', '1');
+                Cookies.delete('bde_pref_consent');
+                Cookies.delete('bde_theme');
+                document.getElementById('pref-toggle').checked = false;
+                document.getElementById('cookie-banner').classList.remove('show');
+                toast('Options de préférence refusées.', 'default');
+            });
+
+            /* ══════════════════════════════════════════════════════════════
+               RENDER ALL
+            ══════════════════════════════════════════════════════════════ */
+            function renderAll() {
+                renderKPI();
+                renderCategories();
+                renderColorPalette();
+                renderTable();
+                renderChart();
+            }
+
+            /* ══════════════════════════════════════════════════════════════
+               INIT
+            ══════════════════════════════════════════════════════════════ */
+            initCookies();
+            loadState(); // loadState appelle renderAll() une fois fini
+        </script>
+</body>
+
+</html>
