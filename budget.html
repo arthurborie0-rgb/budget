@@ -1381,7 +1381,9 @@
                                     <th>Catégorie</th>
                                     <th>Fournisseur</th>
                                     <th>Statut</th>
-                                    <th style="text-align:right">Montant</th>
+                                    <th style="text-align:right">Alloué</th>
+                                    <th style="text-align:right">Utilisé</th>
+                                    <th style="text-align:right">Reste</th>
                                     <th style="text-align:right">Actions</th>
                                 </tr>
                             </thead>
@@ -1410,7 +1412,11 @@
 
                     <!-- Categories -->
                     <div class="panel">
-                        <div class="panel-head"><span class="panel-title">🏷️ Catégories</span></div>
+                        <div class="panel-head"><span class="panel-title">🏷️ Catégories</span>                <!-- Per-Expense Donut Charts -->
+                <div class="panel" id="expense-donut-panel">
+                    <div class="panel-head"><span class="panel-title">📊 Détails par dépense</span></div>
+                    <div id="expense-donut-container" class="expense-donut-grid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:var(--sp-4); padding:var(--sp-4);"></div>
+                </div>
                         <div class="cat-list" id="cat-list"></div>
                         <div class="divider" style="margin:0 var(--sp-5)"></div>
                         <div class="color-palette" id="color-palette"></div>
@@ -1491,9 +1497,13 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="f-montant">Montant (€) *</label>
+                        <label class="form-label" for="f-montant">Budget alloué (€) *</label>
                         <input class="form-input" id="f-montant" type="number" min="0" step="0.01" placeholder="0.00">
-                        <span class="modal-error" id="err-montant">Entrez un montant valide (> 0).</span>
+                        <span class="modal-error" id="err-montant">Ce champ est requis.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="f-utilise">Montant utilisé (€)</label>
+                        <input class="form-input" id="f-utilise" type="number" min="0" step="0.01" placeholder="0.00">
                     </div>
                 </div>
                 <div class="modal-foot">
@@ -1682,13 +1692,14 @@
             ══════════════════════════════════════════════════════════════ */
             function renderKPI() {
                 const budget = state.event.budget || 0;
-                const total = state.expenses.reduce((s, e) => s + e.montant, 0);
-                const solde = budget - total;
-                const paye = state.expenses.filter(e => e.statut === 'confirme' || e.statut === 'paye').reduce((s, e) => s + e.montant, 0);
-                const pct = budget ? Math.min((total / budget) * 100, 100) : 0;
+                const totalAllocated = state.expenses.reduce((s, e) => s + (e.montant || 0), 0);
+                const totalUsed = state.expenses.reduce((s, e) => s + (e.utilise || 0), 0);
+                const solde = budget - totalUsed;
+                const paye = state.expenses.filter(e => e.statut === 'paye').reduce((s, e) => s + (e.utilise || 0), 0);
+                const pct = budget ? Math.min((totalUsed / budget) * 100, 100) : 0;
 
                 document.getElementById('kpi-budget').textContent = fmt(budget);
-                document.getElementById('kpi-depenses').textContent = fmt(total);
+                document.getElementById('kpi-depenses').textContent = fmt(totalUsed);
                 const soldeEl = document.getElementById('kpi-solde');
                 soldeEl.textContent = fmt(solde);
                 soldeEl.className = 'kpi-value ' + (solde < 0 ? 'negative' : 'positive');
@@ -1698,7 +1709,7 @@
                 const bar = document.getElementById('kpi-progress-bar');
                 bar.style.width = pct + '%';
                 bar.className = 'kpi-progress-bar' + (pct > 85 ? ' danger' : '');
-                document.getElementById('kpi-pct').textContent = pct.toFixed(1) + ' % du budget';
+                document.getElementById('kpi-pct').textContent = pct.toFixed(1) + ' % du budget utilisé';
 
                 const budgetUseEl = document.getElementById('kpi-budget-use');
                 if (budgetUseEl) budgetUseEl.textContent = pct.toFixed(1) + ' %';
@@ -1728,27 +1739,33 @@
                 const mobileEl = document.getElementById('expense-mobile');
 
                 if (!data.length) {
-                    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Aucune dépense trouvée.<br>Cliquez sur <strong>+ Ajouter</strong> pour commencer.</div></div></td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Aucune dépense trouvée.<br>Cliquez sur <strong>+ Ajouter</strong> pour commencer.</div></div></td></tr>`;
                     mobileEl.innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Aucune dépense trouvée.</div></div>`;
                     return;
                 }
 
                 // Desktop
-                tbody.innerHTML = data.map(e => `
+                tbody.innerHTML = data.map(e => {
+                    const reste = (e.montant || 0) - (e.utilise || 0);
+                    return `
     <tr>
       <td class="td-name">${escHtml(e.name)}</td>
       <td>${catBadge(e.catId)}</td>
       <td style="color:var(--text2)">${escHtml(e.fournisseur || '—')}</td>
       <td>${statusBadge(e.statut)}</td>
-      <td class="td-amount" style="text-align:right">${fmt(e.montant)}</td>
+      <td class="td-amount" style="text-align:right; color:var(--text3); font-size:0.85rem">${fmt(e.montant || 0)}</td>
+      <td class="td-amount" style="text-align:right">${fmt(e.utilise || 0)}</td>
+      <td class="td-amount" style="text-align:right; color:${reste < 0 ? 'var(--danger)' : 'var(--text2)'}">${fmt(reste)}</td>
       <td class="td-actions">
         <button class="btn btn-icon btn-sm" onclick="openEdit('${e.id}')" title="Modifier">✏️</button>
         <button class="btn btn-icon btn-sm btn-danger" onclick="deleteExpense('${e.id}')" title="Supprimer">🗑️</button>
       </td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 
                 // Mobile
-                mobileEl.innerHTML = data.map(e => `
+                mobileEl.innerHTML = data.map(e => {
+                    const reste = (e.montant || 0) - (e.utilise || 0);
+                    return `
     <div class="mobile-card">
       <div class="mobile-card-top">
         <div class="mobile-card-name">${escHtml(e.name)}</div>
@@ -1758,14 +1775,18 @@
         ${catBadge(e.catId)}
         ${e.fournisseur ? `<span style="font-size:.75rem;color:var(--text3)">${escHtml(e.fournisseur)}</span>` : ''}
       </div>
+      <div style="font-size:0.8rem; margin-top:8px; display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+         <div><div style="color:var(--text3); font-size:0.65rem; text-transform:uppercase;">Alloué</div>${fmt(e.montant || 0)}</div>
+         <div><div style="color:var(--text3); font-size:0.65rem; text-transform:uppercase;">Utilisé</div>${fmt(e.utilise || 0)}</div>
+         <div><div style="color:var(--text3); font-size:0.65rem; text-transform:uppercase;">Reste</div><span style="color:${reste < 0 ? 'var(--danger)' : 'var(--success)'}">${fmt(reste)}</span></div>
+      </div>
       <div class="mobile-card-footer">
-        <span class="mobile-card-amount">${fmt(e.montant)}</span>
-        <div style="display:flex;gap:var(--sp-2)">
+        <div style="display:flex;gap:var(--sp-2); margin-left:auto;">
           <button class="btn btn-icon btn-sm" onclick="openEdit('${e.id}')">✏️</button>
           <button class="btn btn-icon btn-sm btn-danger" onclick="deleteExpense('${e.id}')">🗑️</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;}).join('');
             }
 
             function escHtml(s) {
@@ -1776,33 +1797,90 @@
             /* ══════════════════════════════════════════════════════════════
                CHART
             ══════════════════════════════════════════════════════════════ */
-            function renderChart() {
+                        function renderExpenseCharts() {
+                const container = document.getElementById('expense-donut-container');
+                container.innerHTML = '';
+                if (!state.expenses.length) {
+                    container.innerHTML = `<div class="empty-state"><span class="empty-text">Aucune dépense.</span></div>`;
+                    return;
+                }
+                state.expenses.forEach((e, i) => {
+                    const used = e.utilise || 0;
+                    const allocated = e.montant || 0;
+                    const remaining = Math.max(0, allocated - used);
+                    const labels = [];
+                    const data = [];
+                    const colors = [];
+                    if (used > 0) {
+                        labels.push('Utilisé');
+                        data.push(used);
+                        colors.push(COLOR_PALETTE[i % COLOR_PALETTE.length]);
+                    }
+                    if (remaining > 0) {
+                        labels.push('Restant');
+                        data.push(remaining);
+                        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                        colors.push(isDark ? '#2a2720' : '#e2dac8');
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 120;
+                    canvas.height = 120;
+                    const wrapper = document.createElement('div');
+                    wrapper.style.textAlign = 'center';
+                    const title = document.createElement('div');
+                    title.textContent = e.name;
+                    title.style.fontSize = '0.75rem';
+                    title.style.marginTop = '4px';
+                    wrapper.appendChild(canvas);
+                    wrapper.appendChild(title);
+                    container.appendChild(wrapper);
+                    if (data.length) {
+                        new Chart(canvas, {
+                            type: 'doughnut',
+                            data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 0 }] },
+                            options: { cutout: '70%', plugins: { legend: { display: false } }, animation: { duration: 300 } }
+                        });
+                    } else {
+                        // No allocated amount, show empty placeholder
+                        canvas.getContext('2d').fillStyle = '#ddd';
+                        canvas.getContext('2d').fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                });
+            }
+
+            // Extend renderAll to include expense charts
+            const originalRenderAll = renderAll;
+            function renderAll() {
+                originalRenderAll();
+                renderExpenseCharts();
+            }
                 const budget = state.event.budget || 0;
-                let totalExpenses = 0;
+                let totalUsed = 0;
                 const labels = [];
                 const data = [];
                 const colors = [];
 
-                // Pour chaque dépense, on utilise une couleur de la palette
+                // Pour chaque dépense, on utilise le montant réellement UTILISÉ
                 state.expenses.forEach((e, i) => {
-                    totalExpenses += e.montant;
-                    labels.push(e.name);
-                    data.push(e.montant);
-                    colors.push(COLOR_PALETTE[i % COLOR_PALETTE.length]);
+                    const utilized = e.utilise || 0;
+                    totalUsed += utilized;
+                    if (utilized > 0) {
+                        labels.push(e.name);
+                        data.push(utilized);
+                        colors.push(COLOR_PALETTE[i % COLOR_PALETTE.length]);
+                    }
                 });
 
-                // Part vide pour l'argent non utilisé
-                const unused = Math.max(0, budget - totalExpenses);
-                if (unused > 0) {
-                    labels.push('Non utilisé');
-                    data.push(unused);
+                // Part vide pour l'argent non utilisé du budget total
+                const unusedTotal = Math.max(0, budget - totalUsed);
+                if (unusedTotal > 0) {
+                    labels.push('Budget restant');
+                    data.push(unusedTotal);
                     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-                    colors.push(isDark ? '#2a2720' : '#e2dac8'); // gris/vide
+                    colors.push(isDark ? '#2a2720' : '#e2dac8');
                 }
 
-                const total = Math.max(budget, totalExpenses);
-
-                document.getElementById('chart-total').textContent = fmt(totalExpenses);
+                document.getElementById('chart-total').textContent = fmt(totalUsed);
 
                 if (donutChart) {
                     donutChart.data.labels = labels;
@@ -1823,7 +1901,7 @@
                             plugins: {
                                 legend: { display: false }, tooltip: {
                                     callbacks: {
-                                        label: (ctx) => ` ${ctx.label}: ${fmt(ctx.raw)} (${total ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`
+                                        label: (ctx) => ` ${ctx.label}: ${fmt(ctx.raw)} (${budget ? ((ctx.raw / budget) * 100).toFixed(1) : 0}%)`
                                     },
                                     bodyFont: { family: 'DM Sans' },
                                     backgroundColor: 'rgba(20,18,14,.92)',
@@ -1838,28 +1916,31 @@
 
                 // Legend
                 const leg = document.getElementById('chart-legend');
-                if (!state.expenses.length && unused <= 0) {
+                if (!state.expenses.length && unusedTotal <= 0) {
                     leg.innerHTML = '<div class="empty-state" style="padding:var(--sp-4)"><span class="empty-text">Aucune dépense.</span></div>';
                     return;
                 }
                 
-                let legendHTML = state.expenses.map((e, i) => `
+                let legendHTML = state.expenses.filter(e => (e.utilise || 0) > 0).map((e, i) => `
     <div class="legend-item">
       <div class="legend-dot" style="background:${COLOR_PALETTE[i % COLOR_PALETTE.length]}"></div>
-      <span class="legend-name">${escHtml(e.name)}</span>
-      <span class="legend-pct">${total ? ((e.montant / total) * 100).toFixed(0) : 0}%</span>
-      <span class="legend-amt">${fmt(e.montant)}</span>
+      <div class="legend-name" style="display:flex; flex-direction:column;">
+         <span>${escHtml(e.name)}</span>
+         <small style="font-size:0.65rem; color:var(--text3)">Alloué: ${fmt(e.montant || 0)}</small>
+      </div>
+      <span class="legend-pct">${budget ? ((e.utilise / budget) * 100).toFixed(0) : 0}%</span>
+      <span class="legend-amt">${fmt(e.utilise)}</span>
     </div>`).join('');
     
-                if (unused > 0) {
+                if (unusedTotal > 0) {
                     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
                     const c = isDark ? '#2a2720' : '#e2dac8';
                     legendHTML += `
     <div class="legend-item" style="opacity: 0.7">
       <div class="legend-dot" style="background:${c}; border: 1px dashed var(--text3)"></div>
-      <span class="legend-name">Non utilisé</span>
-      <span class="legend-pct">${total ? ((unused / total) * 100).toFixed(0) : 0}%</span>
-      <span class="legend-amt">${fmt(unused)}</span>
+      <span class="legend-name">Budget disponible</span>
+      <span class="legend-pct">${budget ? ((unusedTotal / budget) * 100).toFixed(0) : 0}%</span>
+      <span class="legend-amt">${fmt(unusedTotal)}</span>
     </div>`;
                 }
                 leg.innerHTML = legendHTML;
@@ -1954,7 +2035,8 @@
                         document.getElementById('f-cat').value = e.catId;
                         document.getElementById('f-fournisseur').value = e.fournisseur || '';
                         document.getElementById('f-statut').value = e.statut;
-                        document.getElementById('f-montant').value = e.montant;
+                        document.getElementById('f-montant').value = e.montant || 0;
+                        document.getElementById('f-utilise').value = e.utilise || 0;
                     }
                 } else {
                     document.getElementById('f-name').value = '';
@@ -1962,6 +2044,7 @@
                     document.getElementById('f-fournisseur').value = '';
                     document.getElementById('f-statut').value = 'planifie';
                     document.getElementById('f-montant').value = '';
+                    document.getElementById('f-utilise').value = '0';
                 }
                 modal.classList.add('open');
                 document.getElementById('f-name').focus();
@@ -1982,26 +2065,47 @@
                 if (e.target === document.getElementById('modal-expense')) closeModal();
             });
 
-            document.getElementById('modal-save').addEventListener('click', () => {
+                        document.getElementById('modal-save').addEventListener('click', () => {
                 clearErrors();
                 const name = document.getElementById('f-name').value.trim();
                 const catId = document.getElementById('f-cat').value;
                 const fournisseur = document.getElementById('f-fournisseur').value.trim();
                 const statut = document.getElementById('f-statut').value;
-                const montant = parseFloat(document.getElementById('f-montant').value);
+                const montant = parseFloat(document.getElementById('f-montant').value) || 0;
+                const utilise = parseFloat(document.getElementById('f-utilise').value) || 0;
 
                 let ok = true;
                 if (!name) { document.getElementById('err-name').classList.add('show'); ok = false; }
                 if (!catId) { document.getElementById('err-cat').classList.add('show'); ok = false; }
-                if (!montant || montant <= 0) { document.getElementById('err-montant').classList.add('show'); ok = false; }
+                if (montant < 0) { document.getElementById('err-montant').classList.add('show'); ok = false; }
                 if (!ok) return;
 
                 if (editingId) {
                     const i = state.expenses.findIndex(e => e.id === editingId);
-                    if (i >= 0) state.expenses[i] = { id: editingId, name, catId, fournisseur, statut, montant };
+                    if (i >= 0) state.expenses[i] = { id: editingId, name, catId, fournisseur, statut, montant, utilise };
                     toast('Dépense modifiée.', 'success');
                 } else {
-                    state.expenses.push({ id: uid(), name, catId, fournisseur, statut, montant });
+                    state.expenses.push({ id: uid(), name, catId, fournisseur, statut, montant, utilise });
+                    toast('Dépense ajoutée ! 🎉', 'success');
+                }
+                saveState(); renderAll(); closeModal();
+            });
+                clearErrors();
+                const montant = parseFloat(document.getElementById('f-montant').value) || 0;
+                const utilise = parseFloat(document.getElementById('f-utilise').value) || 0;
+
+                let ok = true;
+                if (!name) { document.getElementById('err-name').classList.add('show'); ok = false; }
+                if (!catId) { document.getElementById('err-cat').classList.add('show'); ok = false; }
+                if (montant < 0) { document.getElementById('err-montant').classList.add('show'); ok = false; }
+                if (!ok) return;
+
+                if (editingId) {
+                    const i = state.expenses.findIndex(e => e.id === editingId);
+                    if (i >= 0) state.expenses[i] = { id: editingId, name, catId, fournisseur, statut, montant, utilise };
+                    toast('Dépense modifiée.', 'success');
+                } else {
+                    state.expenses.push({ id: uid(), name, catId, fournisseur, statut, montant, utilise });
                     toast('Dépense ajoutée ! 🎉', 'success');
                 }
                 saveState(); renderAll(); closeModal();
@@ -2130,7 +2234,16 @@
             /* ══════════════════════════════════════════════════════════════
                RENDER ALL
             ══════════════════════════════════════════════════════════════ */
-            function renderAll() {
+                        function renderAll() {
+    renderKPI();
+    renderCategories();
+    renderColorPalette();
+    renderTable();
+    renderChart();
+    renderExpenseCharts();
+}
+
+            }
                 renderKPI();
                 renderCategories();
                 renderColorPalette();
